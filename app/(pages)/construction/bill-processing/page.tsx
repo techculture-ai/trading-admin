@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, Download, X, Eye, Edit, Trash2, FileText } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { usePageLoading } from '@/hooks/usePageLoading'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
 
 interface Bill {
   id: string
@@ -88,6 +91,8 @@ export default function BillProcessingPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [showFilterMenu, setShowFilterMenu] = useState(false)
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     contractId: '',
@@ -153,8 +158,7 @@ export default function BillProcessingPage() {
   }
 
   const handleViewBill = (bill: Bill) => {
-    setSelectedBill(bill)
-    setShowViewModal(true)
+      router.push(`/construction/bill-processing/${bill.id}`)
   }
 
   const handleEditBill = (bill: Bill) => {
@@ -247,6 +251,10 @@ export default function BillProcessingPage() {
 
   const formatCurrency = (amount: number) => {
     return `₹${amount.toLocaleString('en-IN')}`
+  }
+
+  if (isLoading) {
+    return <DetailsSkeleton />
   }
 
   return (

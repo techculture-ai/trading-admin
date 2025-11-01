@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, Camera, MapPin, X, Eye, Edit, Trash2, Upload, Download, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { usePageLoading } from '@/hooks/usePageLoading'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
 
 interface SiteProgress {
   id: string
@@ -85,6 +88,8 @@ export default function SiteProgressPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     projectId: '',
@@ -162,8 +167,7 @@ export default function SiteProgressPage() {
   }
 
   const handleViewSite = (site: SiteProgress) => {
-    setSelectedSite(site)
-    setShowViewModal(true)
+    router.push(`/construction/site-progress/${site.id}`)
   }
 
   const handleEditClick = (site: SiteProgress) => {
@@ -220,6 +224,10 @@ export default function SiteProgressPage() {
   const avgProgress = siteProgress.reduce((sum, s) => 
     sum + parseFloat(s.actualProgress), 0
   ) / siteProgress.length || 0
+
+  if (isLoading) {
+    return <DetailsSkeleton />
+  }
 
   return (
     <div className="space-y-6">

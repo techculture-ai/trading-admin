@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, X, TrendingUp, MapPin, Calendar, FileText, Eye, Edit, Trash2, CheckCircle, Clock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
+import { usePageLoading } from '@/hooks/usePageLoading'
 
 interface Valuation {
   id: string
@@ -83,6 +86,8 @@ export default function LandValuationPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     parcelId: '',
@@ -155,8 +160,7 @@ export default function LandValuationPage() {
   }
 
   const handleViewValuation = (valuation: Valuation) => {
-    setSelectedValuation(valuation)
-    setShowViewModal(true)
+    router.push(`/land-acquisition/land-valuation/${valuation.id}`)
   }
 
   const handleEditClick = (valuation: Valuation) => {
@@ -203,6 +207,11 @@ export default function LandValuationPage() {
     const rate = parseFloat(v.marketValue.replace(/[^0-9]/g, '')) || 0
     return sum + rate
   }, 0) / valuations.length || 0
+
+
+  if (isLoading) {
+    return <DetailsSkeleton />
+  }
 
   return (
     <div className="space-y-6">
@@ -390,8 +399,8 @@ export default function LandValuationPage() {
 
       {/* Add Valuation Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-200 shadow-lg">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900">Add New Valuation</h2>
               <button 
@@ -578,8 +587,8 @@ export default function LandValuationPage() {
 
       {/* Edit Modal - Similar to Add Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-200 shadow-lg">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900">Edit Valuation</h2>
               <button 
@@ -743,8 +752,8 @@ export default function LandValuationPage() {
 
       {/* View Valuation Modal */}
       {showViewModal && selectedValuation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-200 shadow-lg">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900">Valuation Details - {selectedValuation.id}</h2>
               <button 

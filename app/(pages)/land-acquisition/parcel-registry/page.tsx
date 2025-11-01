@@ -1,7 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Plus, Download, Filter, X, MapPin, Calendar, User, FileText, Edit, Trash2, Eye } from 'lucide-react'
+import { Search, Plus, Download, Filter, X, MapPin, Calendar, User, FileText, Edit, Trash2, Eye, AlertTriangle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
+import { usePageLoading } from '@/hooks/usePageLoading'
 
 interface Parcel {
   id: string
@@ -64,10 +67,14 @@ export default function ParcelRegistryPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showViewModal, setShowViewModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(null)
+  const [parcelToDelete, setParcelToDelete] = useState<Parcel | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     surveyNo: '',
@@ -107,15 +114,26 @@ export default function ParcelRegistryPage() {
     resetForm()
   }
 
-  const handleDeleteParcel = (id: string) => {
-    if (confirm('Are you sure you want to delete this parcel?')) {
-      setParcels(parcels.filter(p => p.id !== id))
+  const handleDeleteClick = (parcel: Parcel) => {
+    setParcelToDelete(parcel)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = () => {
+    if (parcelToDelete) {
+      setParcels(parcels.filter(p => p.id !== parcelToDelete.id))
+      setShowDeleteModal(false)
+      setParcelToDelete(null)
     }
   }
 
+  const cancelDelete = () => {
+    setShowDeleteModal(false)
+    setParcelToDelete(null)
+  }
+
   const handleViewParcel = (parcel: Parcel) => {
-    setSelectedParcel(parcel)
-    setShowViewModal(true)
+    router.push(`/land-acquisition/parcel-registry/${parcel.id}`)
   }
 
   const handleEditClick = (parcel: Parcel) => {
@@ -169,6 +187,10 @@ export default function ParcelRegistryPage() {
     const matchesFilter = filterStatus === 'all' || parcel.status === filterStatus
     return matchesSearch && matchesFilter
   })
+
+  if (isLoading) {
+    return <DetailsSkeleton />
+  }
 
   return (
     <div className="space-y-6">
@@ -243,30 +265,22 @@ export default function ParcelRegistryPage() {
                 {showFilterDropdown && (
                   <div className="absolute top-full mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                     <div className="p-2">
-                      <button
-                        onClick={() => { setFilterStatus('all'); setShowFilterDropdown(false) }}
-                        className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded"
-                      >
-                        All Status
-                      </button>
-                      <button
-                        onClick={() => { setFilterStatus('Acquired'); setShowFilterDropdown(false) }}
-                        className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded"
-                      >
-                        Acquired
-                      </button>
-                      <button
-                        onClick={() => { setFilterStatus('In Progress'); setShowFilterDropdown(false) }}
-                        className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded"
-                      >
-                        In Progress
-                      </button>
-                      <button
-                        onClick={() => { setFilterStatus('Pending'); setShowFilterDropdown(false) }}
-                        className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 rounded"
-                      >
-                        Pending
-                      </button>
+                      {['all', 'Acquired', 'In Progress', 'Pending'].map((status) => (
+                        <button
+                          key={status}
+                          onClick={() => { 
+                            setFilterStatus(status === 'all' ? 'all' : status)
+                            setShowFilterDropdown(false) 
+                          }}
+                          className={`block w-full text-left px-3 py-2 text-sm rounded ${
+                            filterStatus === status 
+                              ? 'bg-orange-500 text-white' 
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          {status === 'all' ? 'All Status' : status}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -286,91 +300,55 @@ export default function ParcelRegistryPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Parcel ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Survey No.
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Owner Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Area
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Location
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Compensation
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Parcel ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Survey No.</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Area</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compensation</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredParcels.map((parcel) => (
-                <tr key={parcel.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {parcel.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {parcel.surveyNo}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {parcel.owner}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {parcel.area}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {parcel.location}
-                  </td>
+                <tr key={parcel.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{parcel.id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{parcel.surveyNo}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{parcel.owner}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{parcel.area}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{parcel.location}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-3 py-1 text-xs font-medium rounded-full ${
-                        parcel.status === 'Acquired'
-                          ? 'bg-green-100 text-green-700'
-                          : parcel.status === 'In Progress'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-orange-100 text-orange-700'
-                      }`}
-                    >
+                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                      parcel.status === 'Acquired' ? 'bg-green-100 text-green-700' :
+                      parcel.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
+                      'bg-orange-100 text-orange-700'
+                    }`}>
                       {parcel.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {parcel.compensation}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {parcel.date}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{parcel.compensation}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{parcel.date}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     <div className="flex items-center space-x-3">
                       <button 
                         onClick={() => handleViewParcel(parcel)}
-                        className="text-blue-600 hover:text-blue-700"
+                        className="text-blue-600 hover:text-blue-700 transition-colors"
                         title="View Details"
                       >
                         <Eye size={16} />
                       </button>
                       <button 
                         onClick={() => handleEditClick(parcel)}
-                        className="text-orange-600 hover:text-orange-700"
+                        className="text-orange-600 hover:text-orange-700 transition-colors"
                         title="Edit"
                       >
                         <Edit size={16} />
                       </button>
                       <button 
-                        onClick={() => handleDeleteParcel(parcel.id)}
-                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteClick(parcel)}
+                        className="text-red-600 hover:text-red-700 transition-colors"
                         title="Delete"
                       >
                         <Trash2 size={16} />
@@ -383,6 +361,62 @@ export default function ParcelRegistryPage() {
           </table>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && parcelToDelete && (
+        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md border border-gray-200 shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                <AlertTriangle size={24} className="text-red-600" />
+              </div>
+              
+              <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Delete Parcel</h3>
+              <p className="text-sm text-gray-600 text-center mb-6">
+                Are you sure you want to delete this parcel? This action cannot be undone.
+              </p>
+
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Parcel ID:</span>
+                  <span className="font-medium text-gray-900">{parcelToDelete.id}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Survey No:</span>
+                  <span className="font-medium text-gray-900">{parcelToDelete.surveyNo}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Owner:</span>
+                  <span className="font-medium text-gray-900">{parcelToDelete.owner}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Area:</span>
+                  <span className="font-medium text-gray-900">{parcelToDelete.area}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Location:</span>
+                  <span className="font-medium text-gray-900">{parcelToDelete.location}</span>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                >
+                  Delete Parcel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Parcel Modal */}
       {showAddModal && (
@@ -671,136 +705,6 @@ export default function ParcelRegistryPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* View Parcel Modal */}
-      {showViewModal && selectedParcel && (
-        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-200">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
-              <h2 className="text-xl font-bold text-gray-900">Parcel Details - {selectedParcel.id}</h2>
-              <button 
-                onClick={() => { setShowViewModal(false); setSelectedParcel(null) }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-6 space-y-6">
-              {/* Status Badge */}
-              <div className="flex items-center justify-between">
-                <span
-                  className={`px-4 py-2 text-sm font-medium rounded-full ${
-                    selectedParcel.status === 'Acquired'
-                      ? 'bg-green-100 text-green-700'
-                      : selectedParcel.status === 'In Progress'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-orange-100 text-orange-700'
-                  }`}
-                >
-                  {selectedParcel.status}
-                </span>
-                <span className="text-sm text-gray-500">Added on {selectedParcel.date}</span>
-              </div>
-
-              {/* Basic Information */}
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Survey Number</label>
-                  <p className="mt-1 text-gray-900">{selectedParcel.surveyNo}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Parcel ID</label>
-                  <p className="mt-1 text-gray-900 font-medium">{selectedParcel.id}</p>
-                </div>
-              </div>
-
-              {/* Owner Information */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <h3 className="font-semibold text-gray-900 flex items-center">
-                  <User size={18} className="mr-2" />
-                  Owner Information
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Name</label>
-                    <p className="mt-1 text-gray-900">{selectedParcel.owner}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Contact</label>
-                    <p className="mt-1 text-gray-900">{selectedParcel.ownerContact}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Property Details */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <h3 className="font-semibold text-gray-900 flex items-center">
-                  <MapPin size={18} className="mr-2" />
-                  Property Details
-                </h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Area</label>
-                    <p className="mt-1 text-gray-900">{selectedParcel.area}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Location</label>
-                    <p className="mt-1 text-gray-900">{selectedParcel.location}</p>
-                  </div>
-                  {selectedParcel.coordinates && (
-                    <div className="col-span-2">
-                      <label className="text-sm font-medium text-gray-500">GPS Coordinates</label>
-                      <p className="mt-1 text-gray-900">{selectedParcel.coordinates}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Financial Details */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <h3 className="font-semibold text-gray-900 flex items-center">
-                  <Calendar size={18} className="mr-2" />
-                  Financial Details
-                </h3>
-                <div>
-                  <label className="text-sm font-medium text-gray-500">Total Compensation</label>
-                  <p className="mt-1 text-2xl font-bold text-gray-900">{selectedParcel.compensation}</p>
-                </div>
-              </div>
-
-              {/* Documents */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <h3 className="font-semibold text-gray-900 flex items-center">
-                  <FileText size={18} className="mr-2" />
-                  Documents
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedParcel.documents.map((doc, index) => (
-                    <span key={index} className="px-3 py-1 bg-white border border-gray-200 rounded text-sm">
-                      {doc}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => { setShowViewModal(false); handleEditClick(selectedParcel) }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
-                >
-                  Edit Parcel
-                </button>
-                <button
-                  onClick={() => { setShowViewModal(false); setSelectedParcel(null) }}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       )}

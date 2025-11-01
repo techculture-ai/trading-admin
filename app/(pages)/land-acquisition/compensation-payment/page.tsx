@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, Download, X, DollarSign, CheckCircle, Clock, AlertCircle, Eye, Edit, Trash2, CreditCard } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
+import { usePageLoading } from '@/hooks/usePageLoading'
 
 interface Compensation {
   id: string
@@ -100,6 +103,8 @@ export default function CompensationPaymentPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     parcelId: '',
@@ -197,8 +202,7 @@ export default function CompensationPaymentPage() {
   }
 
   const handleViewCompensation = (compensation: Compensation) => {
-    setSelectedCompensation(compensation)
-    setShowViewModal(true)
+    router.push(`/land-acquisition/compensation-payment/${compensation.id}`)
   }
 
   const handlePaymentClick = (compensation: Compensation) => {
@@ -270,6 +274,9 @@ export default function CompensationPaymentPage() {
     sum + (parseFloat(c.pendingAmount.replace(/[^0-9]/g, '')) || 0), 0
   )
 
+  if (isLoading) {
+    return <DetailsSkeleton />
+  }
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -449,8 +456,8 @@ export default function CompensationPaymentPage() {
 
       {/* Add Compensation Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-200 shadow-lg">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900">Add New Compensation</h2>
               <button 
@@ -655,8 +662,8 @@ export default function CompensationPaymentPage() {
 
       {/* Process Payment Modal */}
       {showPaymentModal && selectedCompensation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl">
+        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl border border-gray-200 shadow-lg">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="text-xl font-bold text-gray-900">Process Payment - {selectedCompensation.id}</h2>
               <button 
@@ -796,8 +803,8 @@ export default function CompensationPaymentPage() {
 
       {/* View Compensation Modal */}
       {showViewModal && selectedCompensation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-200 shadow-lg">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900">Compensation Details - {selectedCompensation.id}</h2>
               <button 

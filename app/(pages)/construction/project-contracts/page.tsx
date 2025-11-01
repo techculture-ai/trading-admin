@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, FileText, X, Eye, Edit, Trash2, Download, Calendar, DollarSign, User, CheckCircle, AlertTriangle } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { usePageLoading } from '@/hooks/usePageLoading'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
 
 interface Contract {
   id: string
@@ -95,6 +98,8 @@ export default function ProjectContractsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     projectId: '',
@@ -155,8 +160,7 @@ export default function ProjectContractsPage() {
   }
 
   const handleViewContract = (contract: Contract) => {
-    setSelectedContract(contract)
-    setShowViewModal(true)
+    router.push(`/construction/project-contracts/${contract.id}`)
   }
 
   const handleEditClick = (contract: Contract) => {
@@ -224,7 +228,9 @@ export default function ProjectContractsPage() {
   const totalContractValue = contracts.reduce((sum, c) => 
     sum + (parseFloat(c.contractValue.replace(/[^0-9]/g, '')) || 0), 0
   )
-
+  if (isLoading) {
+    return <DetailsSkeleton />
+  }
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

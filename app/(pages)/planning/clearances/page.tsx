@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, CheckCircle, Clock, XCircle, X, Eye, Edit, Trash2, AlertCircle, Upload, Download, FileText, Calendar } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
+import { usePageLoading } from '@/hooks/usePageLoading'
 
 interface Clearance {
   id: string
@@ -101,7 +104,8 @@ export default function ClearancesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
-
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
   const [formData, setFormData] = useState({
     projectId: '',
     projectName: '',
@@ -175,8 +179,7 @@ export default function ClearancesPage() {
   }
 
   const handleViewClearance = (clearance: Clearance) => {
-    setSelectedClearance(clearance)
-    setShowViewModal(true)
+    router.push(`/planning/clearances/${clearance.id}`)
   }
 
   const handleEditClick = (clearance: Clearance) => {
@@ -231,6 +234,10 @@ export default function ClearancesPage() {
       case 'Expired':
         return <AlertCircle size={20} className="text-gray-600" />
     }
+  }
+
+  if (isLoading) {
+    return <DetailsSkeleton />
   }
 
   return (

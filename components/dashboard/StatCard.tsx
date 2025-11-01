@@ -9,7 +9,7 @@ interface StatCardProps {
 
 export default function StatCard({ title, value, change, lastMonth, icon: Icon, positive }: StatCardProps) {
   return (
-    <div className="bg-white rounded-lg p-6 border border-gray-200">
+    <div className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm text-gray-600 mb-2">{title}</p>
@@ -21,10 +21,12 @@ export default function StatCard({ title, value, change, lastMonth, icon: Icon, 
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-2">Last month: {lastMonth}</p>
+          <p className="text-xs text-gray-500 mt-2">Last period: {lastMonth}</p>
         </div>
-        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-          <Icon size={24} className="text-gray-600" />
+        <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+          positive ? 'bg-green-100' : 'bg-red-100'
+        }`}>
+          <Icon size={24} className={positive ? 'text-green-600' : 'text-red-600'} />
         </div>
       </div>
     </div>

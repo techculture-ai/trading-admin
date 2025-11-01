@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, CheckCircle, XCircle, Clock, X, Eye, Edit, Trash2, Download, FileText } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { usePageLoading } from '@/hooks/usePageLoading'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
 
 interface QualityTest {
   id: string
@@ -76,7 +79,8 @@ export default function QualityAssurancePage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterResult, setFilterResult] = useState('all')
   const [showFilterMenu, setShowFilterMenu] = useState(false)
-
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
   const [formData, setFormData] = useState({
     projectId: '',
     projectName: '',
@@ -137,8 +141,7 @@ export default function QualityAssurancePage() {
   }
 
   const handleViewTest = (test: QualityTest) => {
-    setSelectedTest(test)
-    setShowViewModal(true)
+    router.push(`/construction/quality-assurance/${test.id}`)
   }
 
   const handleEditTest = (test: QualityTest) => {
@@ -227,7 +230,9 @@ export default function QualityAssurancePage() {
   const passedTests = qualityTests.filter(t => t.result === 'Pass').length
   const failedTests = qualityTests.filter(t => t.result === 'Fail').length
   const passRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : '0'
-
+  if (isLoading) {
+    return <DetailsSkeleton />
+  }
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

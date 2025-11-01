@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, Download, X, Eye, Edit, Trash2, Calendar, MapPin, User, DollarSign, TrendingUp } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { usePageLoading } from '@/hooks/usePageLoading'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
 
 interface Project {
   id: string
@@ -83,6 +86,8 @@ export default function ProjectMasterPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -132,8 +137,7 @@ export default function ProjectMasterPage() {
   }
 
   const handleViewProject = (project: Project) => {
-    setSelectedProject(project)
-    setShowViewModal(true)
+    router.push(`/planning/project-master/${project.id}`)
   }
 
   const handleEditClick = (project: Project) => {
@@ -195,6 +199,10 @@ export default function ProjectMasterPage() {
     const matchesFilter = filterStatus === 'all' || project.status === filterStatus
     return matchesSearch && matchesFilter
   })
+
+  if (isLoading) {
+    return <DetailsSkeleton />
+  }
 
   return (
     <div className="space-y-6">

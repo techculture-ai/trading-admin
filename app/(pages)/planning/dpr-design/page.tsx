@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, Upload, Download, FileText, X, Eye, Edit, Trash2, CheckCircle, Clock, AlertCircle, File } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
+import { usePageLoading } from '@/hooks/usePageLoading'
 
 interface DPR {
   id: string
@@ -81,6 +84,8 @@ export default function DPRDesignPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     projectId: '',
@@ -153,8 +158,7 @@ export default function DPRDesignPage() {
   }
 
   const handleViewDPR = (dpr: DPR) => {
-    setSelectedDPR(dpr)
-    setShowViewModal(true)
+    router.push(`/planning/dpr-design/${dpr.id}`)
   }
 
   const handleEditClick = (dpr: DPR) => {
@@ -204,6 +208,10 @@ export default function DPRDesignPage() {
       case 'Rejected':
         return <X size={20} className="text-red-600" />
     }
+  }
+
+  if (isLoading) {
+    return <DetailsSkeleton />
   }
 
   return (

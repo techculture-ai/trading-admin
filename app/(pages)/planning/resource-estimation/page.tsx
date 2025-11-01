@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, Calculator, X, Eye, Edit, Trash2, CheckCircle, Clock, TrendingUp, Download } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { usePageLoading } from '@/hooks/usePageLoading'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
 
 interface Estimate {
   id: string
@@ -64,6 +67,8 @@ export default function ResourceEstimationPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()  
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     projectId: '',
@@ -130,8 +135,7 @@ export default function ResourceEstimationPage() {
   }
 
   const handleViewEstimate = (estimate: Estimate) => {
-    setSelectedEstimate(estimate)
-    setShowViewModal(true)
+    router.push(`/planning/resource-estimation/${estimate.id}`)
   }
 
   const handleEditClick = (estimate: Estimate) => {
@@ -199,6 +203,10 @@ export default function ResourceEstimationPage() {
     const material = parseFloat(e.materialCost.replace(/[^0-9]/g, '')) || 0
     return sum + (material / total * 100)
   }, 0) / estimates.length || 0
+
+  if (isLoading) {
+    return <DetailsSkeleton />
+  }
 
   return (
     <div className="space-y-6">

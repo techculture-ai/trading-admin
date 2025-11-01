@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Search, Plus, Filter, X, Calendar, User, CheckCircle, Clock, AlertCircle, Eye, Edit, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { usePageLoading } from '@/hooks/usePageLoading'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
 
 interface Workflow {
   id: string
@@ -96,6 +99,8 @@ export default function AcquisitionWorkflowsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()
+  const isLoading = usePageLoading(1000)
 
   const [formData, setFormData] = useState({
     parcelId: '',
@@ -147,8 +152,7 @@ export default function AcquisitionWorkflowsPage() {
   }
 
   const handleViewWorkflow = (workflow: Workflow) => {
-    setSelectedWorkflow(workflow)
-    setShowViewModal(true)
+    router.push(`/land-acquisition/acquisition-workflows/${workflow.id}`)
   }
 
   const handleEditClick = (workflow: Workflow) => {
@@ -197,6 +201,10 @@ export default function AcquisitionWorkflowsPage() {
         return <AlertCircle size={20} className="text-red-600" />
     }
   }
+
+  if (isLoading) {
+      return <DetailsSkeleton />
+    }
 
   return (
     <div className="space-y-6">
@@ -372,8 +380,8 @@ export default function AcquisitionWorkflowsPage() {
 
       {/* Add Workflow Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 shadow-lg">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900">Start New Workflow</h2>
               <button 
@@ -508,8 +516,8 @@ export default function AcquisitionWorkflowsPage() {
 
       {/* View Workflow Modal */}
       {showViewModal && selectedWorkflow && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-gray-200 shadow-lg">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900">Workflow Details - {selectedWorkflow.id}</h2>
               <button 
@@ -624,8 +632,8 @@ export default function AcquisitionWorkflowsPage() {
 
       {/* Edit Modal - Similar structure to Add Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 shadow-lg">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
               <h2 className="text-xl font-bold text-gray-900">Edit Workflow</h2>
               <button 

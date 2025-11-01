@@ -2,6 +2,9 @@
 
 import { useState } from 'react'
 import { Map, Layers, ZoomIn, ZoomOut, Maximize, Download, X, MapPin, Info, Search, Filter, Navigation, Crosshair, Ruler } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { DetailsSkeleton } from '@/components/SkeletonLoader'
+import { usePageLoading } from '@/hooks/usePageLoading'
 
 interface MapLayer {
   id: string
@@ -85,6 +88,9 @@ export default function GISViewPage() {
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [measurementMode, setMeasurementMode] = useState(false)
   const [showStats, setShowStats] = useState(true)
+  const router = useRouter()
+
+  const isLoading = usePageLoading(1000)
 
   const toggleLayer = (layerId: string) => {
     setLayers(layers.map(layer => 
@@ -130,6 +136,10 @@ export default function GISViewPage() {
     pending: parcelMarkers.filter(p => p.status === 'Pending').length,
     disputed: parcelMarkers.filter(p => p.status === 'Disputed').length,
     totalArea: parcelMarkers.reduce((sum, p) => sum + parseFloat(p.area), 0).toFixed(1),
+  }
+
+  if (isLoading) {
+    return <DetailsSkeleton />
   }
 
   return (
@@ -460,7 +470,11 @@ export default function GISViewPage() {
                 >
                   {selectedParcel.status}
                 </span>
-                <button className="text-sm text-orange-600 hover:text-orange-700 font-medium">
+                <button
+                  onClick={() => {
+                    router.push(`/land-acquisition/gis-view/${selectedParcel.id}`)
+                  }}
+                  className="text-sm text-orange-600 hover:text-orange-700 font-medium">
                   View Full Details →
                 </button>
               </div>
@@ -506,7 +520,11 @@ export default function GISViewPage() {
                 <button className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                   Get Directions
                 </button>
-                <button className="flex-1 px-3 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
+                <button
+                  onClick={() => {
+                    router.push(`/land-acquisition/gis-view/${selectedParcel.id}`)
+                  }}
+                  className="flex-1 px-3 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors">
                   View Details
                 </button>
               </div>
