@@ -138,13 +138,13 @@ export default function Header() {
                     <Settings size={16} />
                     <span className="text-sm">Settings</span>
                   </Link>
-                  <Link 
+                  {/* <Link 
                     href="/help" 
                     className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 text-gray-700"
                   >
                     <HelpCircle size={16} />
                     <span className="text-sm">Help & Support</span>
-                  </Link>
+                  </Link> */}
                 </div>
                 <div className="border-t border-gray-200 py-2">
                   <button 
