@@ -196,7 +196,8 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                         onChange={(e) =>
                           updateCondition(condition.id, "field", e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#fbc40c] focus:ring-2 focus:ring-[#fbc40c]/20 text-sm"
+                        id="single-select-field"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#fbc40c] focus:ring-2 focus:ring-[#fbc40c]/20 text-sm form-select"
                       >
                         {columns.map((col) => (
                           <option key={col.key} value={col.key}>
@@ -220,7 +221,8 @@ const AdvancedFilter: React.FC<AdvancedFilterProps> = ({
                             e.target.value
                           )
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#fbc40c] focus:ring-2 focus:ring-[#fbc40c]/20 text-sm"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#fbc40c] focus:ring-2 focus:ring-[#fbc40c]/20 text-sm form-select"
+                        id="single-select-field"
                       >
                         {OPERATORS.map((op) => (
                           <option key={op.value} value={op.value}>

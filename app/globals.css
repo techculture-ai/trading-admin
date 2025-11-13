@@ -86,3 +86,20 @@ body {
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
 }
+
+.react-select-container {
+  position: relative;
+  box-sizing: border-box;
+}
+
+.react-select__control {
+  min-height: 38px !important;
+}
+
+.react-select__menu {
+  z-index: 100 !important;
+}
+
+.react-select__menu-portal {
+  z-index: 9999 !important;
+}

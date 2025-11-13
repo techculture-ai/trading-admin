@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   FaUpload,
@@ -15,6 +15,7 @@ import PageHeader from "@/components/PageHeader";
 import EnhancedDataTable from "@/components/EnhancedDataTable";
 import QuickStats from "@/components/QuickStats";
 import ConfirmModal from "@/components/ConfirmModal";
+import { FilterCondition } from "@/components/AdvancedFilter";
 
 interface ClientData {
   id: string;
@@ -48,6 +49,15 @@ const ClientsPage = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editData, setEditData] = useState<ClientData | null>(null);
 
+  // Pagination and filtering states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>(
+    []
+  );
+  const [searchTerm, setSearchTerm] = useState("");
+
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -64,33 +74,6 @@ const ClientsPage = () => {
   // Backend URL
   const API_URL = process.env.NEXT_PUBLIC_API_URL + "/clients";
 
-  // Fetch clients on component mount
-  useEffect(() => {
-    fetchClients();
-  }, []);
-
-  useEffect(() => {
-    const savedOrder = localStorage.getItem("clientsColumnOrder");
-    if (savedOrder) {
-      try {
-        const parsedOrder = JSON.parse(savedOrder);
-        setColumnOrder(parsedOrder);
-      } catch (error) {
-        console.error("Error parsing saved column order:", error);
-      }
-    }
-  }, []);
-
-
-  const handleColumnOrderChange = (newColumns: Column[]) => {
-    setColumns(newColumns);
-    setColumnOrder(newColumns);
-    localStorage.setItem("clientsColumnOrder", JSON.stringify(newColumns));
-  };
-
-
-  const displayColumns = columnOrder.length > 0 ? columnOrder : columns;
-
   // Toast notification helper
   const showToast = (message: string, type: "success" | "error" | "info") => {
     setToast({ show: true, message, type });
@@ -99,25 +82,230 @@ const ClientsPage = () => {
     }, 3000);
   };
 
+  // Fetch clients from backend
+  const fetchClients = async (
+    filters: FilterCondition[] = [],
+    search: string = "",
+    page: number = 1,
+    limit: number = 100
+  ) => {
+    try {
+      setIsLoading(true);
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        search: search,
+        filters: JSON.stringify(filters),
+      });
+
+      const response = await fetch(`${API_URL}?${params}`);
+      const result = await response.json();
+
+      if (result.clients) {
+        const transformedData = result.clients.map((client: any) => ({
+          id: client._id,
+          _id: client._id,
+          isRead: client.isRead || false,
+          ...client,
+        }));
+
+        setClients(transformedData);
+        setTotalRecords(result.totalRecords || 0);
+        setCurrentPage(page);
+      }
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      showToast("Failed to fetch clients", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initialize columns and load data - ONLY ONCE
+  useEffect(() => {
+    // Fixed columns definition
+    const fixedColumns: Column[] = [
+      {
+        key: "tradingCode",
+        label: "Trading Code",
+        sortable: true,
+        visible: true,
+      },
+      { key: "owner", label: "Owner", sortable: true, visible: true },
+      { key: "name", label: "Name", sortable: true, visible: true },
+      {
+        key: "mobileNo",
+        label: "Mobile No",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "emailId",
+        label: "Email ID",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "dpClientId",
+        label: "DP Client ID",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "branchCode",
+        label: "Branch Code",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "activeExchange",
+        label: "Active Exchange",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "rmtlCode",
+        label: "RMTL Code",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "investorType",
+        label: "Investor Type",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "accountOpenDate",
+        label: "A/c Open Date",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "accountStatus",
+        label: "Account Status",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "firstTradeDate",
+        label: "First Trade Date",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "holdingValue",
+        label: "Holding Value",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "ledgerBalance",
+        label: "Ledger Balance",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "lastTradeDate",
+        label: "Last Trade Date",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "ytdBrok",
+        label: "YTD Brok.",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "poaDdpi",
+        label: "POA/DDPI",
+        sortable: true,
+        visible: true,
+      },
+      { key: "nominee", label: "Nominee", sortable: true, visible: true },
+      {
+        key: "annualIncome",
+        label: "Annual Income",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "occupation",
+        label: "Occupation",
+        sortable: true,
+        visible: true,
+      },
+      { key: "city", label: "City", sortable: true, visible: true },
+      { key: "state", label: "State", sortable: true, visible: true },
+      {
+        key: "lastLoginDate",
+        label: "Last Login Date",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "callingStatus",
+        label: "Calling Status",
+        sortable: true,
+        visible: true,
+      },
+      {
+        key: "nextFollowUpDate",
+        label: "Next Follow up Date",
+        sortable: true,
+        visible: true,
+      },
+      { key: "remarks", label: "Remarks", sortable: true, visible: true },
+    ];
+
+    // Load saved column order from localStorage
+    const savedOrder = localStorage.getItem("clientsColumnOrder");
+    if (savedOrder) {
+      try {
+        const parsedOrder = JSON.parse(savedOrder);
+        setColumnOrder(parsedOrder);
+        setColumns(parsedOrder);
+      } catch (error) {
+        console.error("Error parsing saved column order:", error);
+        setColumns(fixedColumns);
+      }
+    } else {
+      setColumns(fixedColumns);
+    }
+
+    // Fetch initial data
+    fetchClients([], "", 1, 100);
+  }, []); // Empty dependency array - runs only once
+
+  const handleColumnOrderChange = (newColumns: Column[]) => {
+    setColumns(newColumns);
+    setColumnOrder(newColumns);
+    localStorage.setItem("clientsColumnOrder", JSON.stringify(newColumns));
+  };
+
+  const displayColumns = columnOrder.length > 0 ? columnOrder : columns;
+
   // Quick Stats
   const quickStats = [
     {
       label: "Total Clients",
-      value: clients.length.toString(),
+      value: totalRecords.toString(),
       icon: <FaUsers className="w-6 h-6" />,
       color: "text-blue-600",
       bgColor: "bg-blue-50",
     },
     {
-      label: "CSV Uploads",
-      value: clients.length > 0 ? "1" : "0",
+      label: "Current Page",
+      value: clients.length.toString(),
       icon: <FaFileAlt className="w-6 h-6" />,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
       label: "Active Records",
-      value: clients.length.toString(),
+      value: totalRecords.toString(),
       icon: <FaCheckCircle className="w-6 h-6" />,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
@@ -131,157 +319,27 @@ const ClientsPage = () => {
     },
   ];
 
-  // Fetch clients from backend
-  const fetchClients = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(API_URL);
-      const result = await response.json();
+  // Handle filter change from table
+  const handleFilterChange = (
+    conditions: FilterCondition[],
+    search: string
+  ) => {
+    setFilterConditions(conditions);
+    setSearchTerm(search);
+    setCurrentPage(1);
+    fetchClients(conditions, search, 1, itemsPerPage);
+  };
 
-      if (result.clients) {
-        // Fixed columns
-        const fixedColumns: Column[] = [
-          {
-            key: "tradingCode",
-            label: "Trading Code",
-            sortable: true,
-            visible: true,
-          },
-          { key: "owner", label: "Owner", sortable: true, visible: true },
-          { key: "name", label: "Name", sortable: true, visible: true },
-          {
-            key: "mobileNo",
-            label: "Mobile No",
-            sortable: true,
-            visible: true,
-          },
-          { key: "emailId", label: "Email ID", sortable: true, visible: true },
-          {
-            key: "dpClientId",
-            label: "DP Client ID",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "branchCode",
-            label: "Branch Code",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "activeExchange",
-            label: "Active Exchange",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "rmtlCode",
-            label: "RMTL Code",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "investorType",
-            label: "Investor Type",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "accountOpenDate",
-            label: "A/c Open Date",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "accountStatus",
-            label: "Account Status",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "firstTradeDate",
-            label: "First Trade Date",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "holdingValue",
-            label: "Holding Value",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "ledgerBalance",
-            label: "Ledger Balance",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "lastTradeDate",
-            label: "Last Trade Date",
-            sortable: true,
-            visible: true,
-          },
-          { key: "ytdBrok", label: "YTD Brok.", sortable: true, visible: true },
-          { key: "poaDdpi", label: "POA/DDPI", sortable: true, visible: true },
-          { key: "nominee", label: "Nominee", sortable: true, visible: true },
-          {
-            key: "annualIncome",
-            label: "Annual Income",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "occupation",
-            label: "Occupation",
-            sortable: true,
-            visible: true,
-          },
-          { key: "city", label: "City", sortable: true, visible: true },
-          { key: "state", label: "State", sortable: true, visible: true },
-          {
-            key: "lastLoginDate",
-            label: "Last Login Date",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "callingStatus",
-            label: "Calling Status",
-            sortable: true,
-            visible: true,
-          },
-          {
-            key: "nextFollowUpDate",
-            label: "Next Follow up Date",
-            sortable: true,
-            visible: true,
-          },
-          { key: "remarks", label: "Remarks", sortable: true, visible: true },
-        ];
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    fetchClients(filterConditions, searchTerm, newPage, itemsPerPage);
+  };
 
-        // Use saved order if available, otherwise use default
-        if (columnOrder.length === 0) {
-          setColumns(fixedColumns);
-        } else {
-          setColumns(columnOrder);
-        }
-
-        const transformedData = result.clients.map((client: any) => ({
-          id: client._id,
-          _id: client._id,
-          isRead: client.isRead || false,
-          ...client,
-        }));
-
-        setClients(transformedData);
-      }
-    } catch (error) {
-      console.error("Error fetching clients:", error);
-      showToast("Failed to fetch clients", "error");
-    } finally {
-      setIsLoading(false);
-    }
+  // Handle items per page change
+  const handleItemsPerPageChange = (newLimit: number) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
+    fetchClients(filterConditions, searchTerm, 1, newLimit);
   };
 
   const handleToggleRead = async (id: string, isRead: boolean) => {
@@ -293,7 +351,6 @@ const ClientsPage = () => {
       });
 
       if (response.ok) {
-        // Update local state immediately
         setClients(
           clients.map((client) =>
             client.id === id || client._id === id
@@ -312,104 +369,99 @@ const ClientsPage = () => {
     }
   };
 
-  // Handle File Upload
- const handleFileUpload = async (
-   event: React.ChangeEvent<HTMLInputElement>
- ) => {
-   const file = event.target.files?.[0];
-   if (!file) return;
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-   if (!file.name.endsWith(".csv")) {
-     showToast("Please upload a CSV file", "error");
-     // Reset file input
-     if (fileInputRef.current) {
-       fileInputRef.current.value = "";
-     }
-     return;
-   }
+    if (!file.name.endsWith(".csv")) {
+      showToast("Please upload a CSV file", "error");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
 
-   setUploadStatus("uploading");
+    setUploadStatus("uploading");
 
-   try {
-     const formData = new FormData();
-     formData.append("file", file);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
 
-     const response = await fetch(`${API_URL}/upload`, {
-       method: "POST",
-       body: formData,
-     });
+      const response = await fetch(`${API_URL}/upload`, {
+        method: "POST",
+        body: formData,
+      });
 
-     const result = await response.json();
+      const result = await response.json();
 
-     if (!response.ok) {
+      if (response.status === 202) {
+        showToast(
+          result.message || "Processing large file in background...",
+          "info"
+        );
+        setUploadStatus("success");
+
+        setTimeout(() => {
+          showToast("Refreshing data...", "info");
+          fetchClients(filterConditions, searchTerm, 1, itemsPerPage);
+        }, 5000);
+
+        setTimeout(() => {
+          fetchClients(filterConditions, searchTerm, 1, itemsPerPage);
+        }, 30000);
+      } else if (!response.ok) {
         throw new Error(result.message || "Upload failed");
-     }
+      } else {
+        setUploadStatus("success");
 
-     console.log("Data uploaded successfully:", result);
+        let message = `Successfully uploaded ${result.newRecords} new record(s)`;
+        if (result.duplicatesSkipped > 0) {
+          message += `. ${result.duplicatesSkipped} duplicate(s) skipped`;
+        }
 
-     setUploadStatus("success");
+        showToast(message, result.duplicatesSkipped > 0 ? "info" : "success");
 
-     // Show detailed success message
-     let message = `Successfully uploaded ${result.newRecords} new record(s)`;
-     if (result.duplicatesSkipped > 0) {
-       message += `. ${result.duplicatesSkipped} duplicate(s) skipped`;
-     }
+        if (result.duplicateFile && result.duplicateFile.downloadUrl) {
+          setTimeout(() => {
+            if (
+              confirm(
+                `Found ${result.duplicatesSkipped} duplicate records. Download duplicate records file?`
+              )
+            ) {
+              const filename = result.duplicateFile.filename;
+              const link = document.createElement("a");
+              link.href = `${process.env.NEXT_PUBLIC_API_URL}/clients/duplicates/${filename}`;
+              link.download = `duplicate_records_${Date.now()}.csv`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }
+          }, 2000);
+        }
 
-     showToast(message, result.duplicatesSkipped > 0 ? "info" : "success");
+        await fetchClients(filterConditions, searchTerm, 1, itemsPerPage);
+      }
 
-     // Handle duplicate file download if available
-     if (result.duplicateFile && result.duplicateFile.downloadUrl) {
-       setTimeout(() => {
-         showToast(
-           `${result.duplicatesSkipped} duplicate records found. Click to download.`,
-           "info"
-         );
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
 
-         // Automatically download the duplicate file
-         const downloadDuplicates = () => {
-           const filename = result.duplicateFile.filename;
-           const link = document.createElement("a");
-           link.href = `${process.env.NEXT_PUBLIC_API_URL}/clients/duplicates/${filename}`;
-           link.download = `duplicate_records_${Date.now()}.csv`;
-           document.body.appendChild(link);
-           link.click();
-           document.body.removeChild(link);
-         };
+      setTimeout(() => setUploadStatus("idle"), 3000);
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      setUploadStatus("error");
+      showToast(error.message || "Upload failed. Please try again.", "error");
 
-         // Show a button or automatically download
-         if (
-           confirm(
-             `Found ${result.duplicatesSkipped} duplicate records. Download duplicate records file?`
-           )
-         ) {
-           downloadDuplicates();
-         }
-       }, 2000);
-     }
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
 
-     await fetchClients();
+      setTimeout(() => setUploadStatus("idle"), 3000);
+    }
+  };
 
-     // Reset file input to allow same file upload again
-     if (fileInputRef.current) {
-       fileInputRef.current.value = "";
-     }
-
-     setTimeout(() => setUploadStatus("idle"), 3000);
-   } catch (error: any) {
-     console.error("Upload error:", error);
-     setUploadStatus("error");
-     showToast(error.message || "Upload failed. Please try again.", "error");
-
-     // Reset file input on error
-     if (fileInputRef.current) {
-       fileInputRef.current.value = "";
-     }
-
-     setTimeout(() => setUploadStatus("idle"), 3000);
-   }
- };
-
-  // Export to CSV
   const handleExport = async () => {
     try {
       setIsExporting(true);
@@ -418,7 +470,7 @@ const ClientsPage = () => {
       const response = await fetch(`${API_URL}/export`);
 
       if (!response.ok) {
-        console.error("Export response not ok:", response);
+        throw new Error("Export failed");
       }
 
       const blob = await response.blob();
@@ -438,7 +490,6 @@ const ClientsPage = () => {
     }
   };
 
-  // Handle View
   const handleView = (id: string) => {
     const client = clients.find((c) => c.id === id || c._id === id);
     if (client) {
@@ -447,7 +498,6 @@ const ClientsPage = () => {
     }
   };
 
-  // Handle Edit
   const handleEdit = (id: string) => {
     const client = clients.find((c) => c.id === id || c._id === id);
     if (client) {
@@ -456,19 +506,26 @@ const ClientsPage = () => {
     }
   };
 
-  // Save Edit
   const handleSaveEdit = async () => {
     if (editData) {
       try {
         setIsUpdating(true);
 
-        const { id, _id, ...data } = editData;
+        const {
+          id,
+          _id,
+          isRead,
+          uploadedAt,
+          lastModified,
+          uploadedBy,
+          ...data
+        } = editData;
         const mongoId = _id || id;
 
         const response = await fetch(`${API_URL}/${mongoId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ data }),
+          body: JSON.stringify(data),
         });
 
         if (response.ok) {
@@ -495,7 +552,6 @@ const ClientsPage = () => {
     }
   };
 
-  // Handle Delete
   const handleDelete = (id: string) => {
     setSelectedClient(id);
     setShowDeleteModal(true);
@@ -511,15 +567,15 @@ const ClientsPage = () => {
         });
 
         if (response.ok) {
-          const updatedClients = clients.filter(
-            (client) =>
-              client.id !== selectedClient && client._id !== selectedClient
+          showToast("Client deleted successfully", "success");
+          await fetchClients(
+            filterConditions,
+            searchTerm,
+            currentPage,
+            itemsPerPage
           );
-
-          setClients(updatedClients);
           setShowDeleteModal(false);
           setSelectedClient(null);
-          showToast("Client deleted successfully", "success");
         } else {
           const error = await response.json();
           showToast(`Delete failed: ${error.message}`, "error");
@@ -533,7 +589,6 @@ const ClientsPage = () => {
     }
   };
 
-  // Handle Multiple Delete
   const handleMultipleDelete = (ids: string[]) => {
     setSelectedClients(ids);
     setShowMultipleDeleteModal(true);
@@ -551,21 +606,18 @@ const ClientsPage = () => {
 
       if (response.ok) {
         const result = await response.json();
-
-        const updatedClients = clients.filter(
-          (client) =>
-            !selectedClients.includes(client.id) &&
-            !selectedClients.includes(client._id || "")
-        );
-
-        setClients(updatedClients);
-        setShowMultipleDeleteModal(false);
-        setSelectedClients([]);
-
         showToast(
           `Successfully deleted ${result.deletedCount} client(s)`,
           "success"
         );
+        await fetchClients(
+          filterConditions,
+          searchTerm,
+          currentPage,
+          itemsPerPage
+        );
+        setShowMultipleDeleteModal(false);
+        setSelectedClients([]);
       } else {
         const error = await response.json();
         showToast(`Delete failed: ${error.message}`, "error");
@@ -577,7 +629,6 @@ const ClientsPage = () => {
       setIsDeleting(false);
     }
   };
-
   return (
     <div className="space-y-6">
       {/* Toast Notification */}
@@ -656,7 +707,7 @@ const ClientsPage = () => {
       {clients.length > 0 && <QuickStats stats={quickStats} />}
 
       {/* Data Table */}
-      {isLoading ? (
+      {isLoading && clients.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
           <FaSpinner className="w-16 h-16 text-[#fbc40c] animate-spin mx-auto mb-4" />
           <h3 className="text-xl font-bold text-gray-900 mb-2">
@@ -664,9 +715,9 @@ const ClientsPage = () => {
           </h3>
           <p className="text-gray-600">Please wait while we fetch your data</p>
         </div>
-      ) : clients.length > 0 ? (
+      ) : totalRecords > 0 || clients.length > 0 ? ( // FIXED: Show table if there's any data OR if we've loaded before
         <EnhancedDataTable
-          columns={columns}
+          columns={displayColumns}
           data={clients}
           onView={handleView}
           onEdit={handleEdit}
@@ -675,8 +726,16 @@ const ClientsPage = () => {
           onExport={handleExport}
           onToggleRead={handleToggleRead}
           onColumnOrderChange={handleColumnOrderChange}
+          onFilterChange={handleFilterChange}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+          totalRecords={totalRecords}
+          currentPage={currentPage}
+          itemsPerPage={itemsPerPage}
+          isLoading={isLoading}
         />
       ) : (
+        // Only show "Upload CSV" if truly no data AND no filters active
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
           <FaFileAlt className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-gray-900 mb-2">
