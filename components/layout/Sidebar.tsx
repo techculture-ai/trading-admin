@@ -1,205 +1,189 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname,useRouter } from 'next/navigation'
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
-  MapPin,
-  ClipboardList,
-  Building2,
-  Home,
-  Calculator,
   Users,
+  TrendingUp,
   Package,
-  Wrench,
-  Megaphone,
-  Scale,
+  Wallet,
+  Headphones,
+  BarChart3,
   FileText,
+  Newspaper,
+  Settings,
   ChevronDown,
   ChevronRight,
   ChevronLeft,
   Menu,
-} from 'lucide-react'
+  UserCheck,
+  CreditCard,
+  Building2,
+  ShoppingCart,
+  PieChart,
+  LineChart,
+  LogOut,
+} from "lucide-react";
 
 interface SubMenuItem {
-  name: string
-  href: string
+  name: string;
+  href: string;
+  badge?: string;
 }
 
 interface MenuItem {
-  name: string
-  icon: any
-  href?: string
-  badge?: string
-  subItems?: SubMenuItem[]
+  name: string;
+  icon: any;
+  href?: string;
+  badge?: string;
+  subItems?: SubMenuItem[];
 }
 
 const menuItems: MenuItem[] = [
   {
-    name: 'Dashboard',
+    name: "Dashboard",
     icon: LayoutDashboard,
-    href: '/dashboard',
+    href: "/dashboard",
   },
   {
-    name: 'Land Acquisition',
-    icon: MapPin,
-    // href: '/land-acquisition',
-    subItems: [
-      { name: 'Parcel Registry', href: '/land-acquisition/parcel-registry' },
-      { name: 'Acquisition Workflows', href: '/land-acquisition/acquisition-workflows' },
-      { name: 'Compensation & Payment', href: '/land-acquisition/compensation-payment' },
-      { name: 'Land Valuation', href: '/land-acquisition/land-valuation' },
-      { name: 'GIS View', href: '/land-acquisition/gis-view' },
-    ],
-  },
-  {
-    name: 'Planning',
-    icon: ClipboardList,
-    // href: '/planning',
-    subItems: [
-      { name: 'Project Master', href: '/planning/project-master' },
-      { name: 'DPR & Design', href: '/planning/dpr-design' },
-      { name: 'Resource Estimation', href: '/planning/resource-estimation' },
-      { name: 'Clearances & NOCs', href: '/planning/clearances' },
-    ],
-  },
-  {
-    name: 'Construction',
-    icon: Building2,
-    // href: '/construction',
-    badge: 'NEW',
-    subItems: [
-      { name: 'Project & Contracts', href: '/construction/project-contracts' },
-      { name: 'Site Progress', href: '/construction/site-progress' },
-      { name: 'Quality Assurance', href: '/construction/quality-assurance' },
-      { name: 'Bill Processing', href: '/construction/bill-processing' },
-    ],
-  },
-  {
-    name: 'Property Disposal',
-    icon: Home,
-    // href: '/property-disposal',
-    subItems: [
-      { name: 'Property Master', href: '/property-disposal/property-master' },
-      { name: 'Sale & Allotment', href: '/property-disposal/sale-allotment' },
-      { name: 'Pricing Engine', href: '/property-disposal/pricing' },
-      { name: 'Inventory Status', href: '/property-disposal/inventory' },
-    ],
-  },
-  {
-    name: 'Accounts',
-    icon: Calculator,
-    // href: '/accounts',
-    subItems: [
-      { name: 'Budgeting', href: '/accounts/budgeting' },
-      { name: 'Receipts & Revenue', href: '/accounts/receipts' },
-      { name: 'Payables', href: '/accounts/payables' },
-      { name: 'Treasury Integration', href: '/accounts/treasury' },
-    ],
-  },
-  {
-    name: 'Establishment',
+    name: "User Management",
     icon: Users,
-    // href: '/establishment',
+    // badge: "156",
     subItems: [
-      { name: 'Employee Master', href: '/establishment/employee-master' },
-      { name: 'Attendance & Leave', href: '/establishment/attendance' },
-      { name: 'Payroll', href: '/establishment/payroll' },
+      { name: "All Users", href: "/users" },
+      { name: "KYC Verification", href: "/users/kyc", badge: "23" },
+      { name: "Demat Accounts", href: "/accounts/demat" },
+      { name: "Trading Accounts", href: "/accounts/trading" },
     ],
   },
   {
-    name: 'General Store',
+    name: "Trade Management",
+    icon: TrendingUp,
+    subItems: [
+      { name: "All Trades", href: "/trades" },
+      { name: "Orders", href: "/trades/orders", badge: "45" },
+      { name: "Open Positions", href: "/trades/positions" },
+    ],
+  },
+  {
+    name: "Products",
     icon: Package,
-    // href: '/general-store',
     subItems: [
-      { name: 'Inventory', href: '/general-store/inventory' },
-      { name: 'Procurement', href: '/general-store/procurement' },
+      { name: "Stocks", href: "/products/stocks" },
+      { name: "Mutual Funds", href: "/products/mutual-funds" },
+      { name: "IPOs", href: "/products/ipos", badge: "3" },
+      { name: "F&O", href: "/products/fno" },
     ],
   },
   {
-    name: 'Engineering Store',
-    icon: Wrench,
-    // href: '/engineering-store',
+    name: "Payments",
+    icon: Wallet,
     subItems: [
-      { name: 'Material Master', href: '/engineering-store/material-master' },
-      { name: 'Issue Tracking', href: '/engineering-store/issue-tracking' },
+      { name: "Transactions", href: "/payments" },
+      { name: "Withdrawals", href: "/payments/withdrawals", badge: "12" },
+      { name: "Deposits", href: "/payments/deposits" },
     ],
   },
   {
-    name: 'Marketing',
-    icon: Megaphone,
-    // href: '/marketing',
+    name: "Clients", // New Menu Item
+    icon: Users,
+    href: "/clients",
+  },
+  {
+    name: "Support",
+    icon: Headphones,
+    badge: "34",
     subItems: [
-      { name: 'Campaigns', href: '/marketing/campaigns' },
-      { name: 'Lead Management', href: '/marketing/leads' },
+      { name: "Tickets", href: "/support/tickets", badge: "18" },
+      { name: "Queries", href: "/support/queries", badge: "16" },
     ],
   },
   {
-    name: 'Legal',
-    icon: Scale,
-    // href: '/legal',
-    subItems: [
-      { name: 'Case Registry', href: '/legal/case-registry' },
-      { name: 'Hearing Calendar', href: '/legal/hearings' },
-    ],
+    name: "Analytics",
+    icon: BarChart3,
+    href: "/analytics",
   },
   {
-    name: 'RTI',
+    name: "Reports",
     icon: FileText,
-    // href: '/rti',
+    href: "/reports",
+  },
+  {
+    name: "Content",
+    icon: Newspaper,
     subItems: [
-      { name: 'Applications', href: '/rti/applications' },
-      { name: 'Responses', href: '/rti/responses' },
+      { name: "Blogs", href: "/content/blogs" },
+      { name: "News", href: "/content/news" },
+      { name: "Research", href: "/content/research" },
     ],
   },
-]
+  {
+    name: "Settings",
+    icon: Settings,
+    href: "/settings",
+  },
+];
 
 export default function Sidebar() {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [expandedItems, setExpandedItems] = useState<string[]>(['Dashboard'])
-  const [isMinimized, setIsMinimized] = useState(false)
+  const pathname = usePathname();
+  const router = useRouter();
+  const [expandedItems, setExpandedItems] = useState<string[]>(["Dashboard"]);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   const toggleExpand = (itemName: string) => {
-    if (isMinimized) return // Don't expand when minimized
+    if (isMinimized) return;
     setExpandedItems((prev) =>
       prev.includes(itemName)
         ? prev.filter((item) => item !== itemName)
         : [...prev, itemName]
-    )
-  }
+    );
+  };
 
   const toggleSidebar = () => {
-    setIsMinimized((prev) => !prev)
+    setIsMinimized((prev) => !prev);
     if (!isMinimized) {
-      setExpandedItems([]) // Collapse all when minimizing
+      setExpandedItems([]);
     }
-  }
+  };
 
-  const isActive = (href: string) => pathname === href
+  const isActive = (href: string) => pathname === href;
 
   return (
     <aside
-      className={`bg-white border-r border-gray-200 overflow-y-auto transition-all duration-300 ${
-        isMinimized ? 'w-20' : 'w-64'
+      className={`bg-[#0A2745] text-white border-r border-white/10 overflow-y-auto transition-all duration-300 h-screen hide-scrollbar  ${
+        isMinimized ? "w-24" : ""
       }`}
     >
       {/* Logo */}
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            {!isMinimized && <div className="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-              M
-            </div>}
-            {!isMinimized && <span className="font-semibold text-lg">MIS ERP</span>}
+            {!isMinimized && (
+              <div className="w-10 h-10 bg-[#fbc40c] rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                EZ
+              </div>
+            )}
+            {!isMinimized && (
+              <span className="font-semibold text-lg">Control Panel</span>
+            )}
+            {isMinimized && (
+              <div className="w-10 h-10 bg-[#fbc40c] rounded-lg flex items-center justify-center text-white font-bold text-xl">
+                EZ
+              </div>
+            )}
           </div>
           <button
             onClick={toggleSidebar}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-            title={isMinimized ? 'Maximize sidebar' : 'Minimize sidebar'}
+            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+            title={isMinimized ? "Maximize sidebar" : "Minimize sidebar"}
           >
-            {isMinimized ? <Menu size={20} /> : <ChevronLeft size={20} />}
+            {isMinimized ? (
+              <ChevronRight size={20} />
+            ) : (
+              <ChevronLeft size={20} />
+            )}
           </button>
         </div>
       </div>
@@ -212,20 +196,21 @@ export default function Sidebar() {
               {item.href ? (
                 <Link
                   href={item.href}
-                  
                   className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
                     isActive(item.href)
-                      ? 'bg-orange-500 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? "bg-[#fbc40c] text-white"
+                      : "text-white/80 hover:bg-white/10"
                   }`}
-                  title={isMinimized ? item.name : ''}
+                  title={isMinimized ? item.name : ""}
                 >
                   <div className="flex items-center space-x-3">
                     <item.icon size={20} />
-                    {!isMinimized && <span className="font-medium">{item.name}</span>}
+                    {!isMinimized && (
+                      <span className="font-medium">{item.name}</span>
+                    )}
                   </div>
                   {!isMinimized && item.badge && (
-                    <span className="px-2 py-1 text-xs bg-orange-100 text-orange-600 rounded">
+                    <span className="px-2 py-1 text-xs bg-red-500 text-white rounded-full font-semibold">
                       {item.badge}
                     </span>
                   )}
@@ -234,17 +219,19 @@ export default function Sidebar() {
                 <>
                   <button
                     onClick={() => toggleExpand(item.name)}
-                    className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                    title={isMinimized ? item.name : ''}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-white/80 hover:bg-white/10 transition-colors"
+                    title={isMinimized ? item.name : ""}
                   >
                     <div className="flex items-center space-x-3">
                       <item.icon size={20} />
-                      {!isMinimized && <span className="font-medium">{item.name}</span>}
+                      {!isMinimized && (
+                        <span className="font-medium">{item.name}</span>
+                      )}
                     </div>
                     {!isMinimized && (
                       <div className="flex items-center space-x-2">
                         {item.badge && (
-                          <span className="px-2 py-1 text-xs bg-orange-100 text-orange-600 rounded">
+                          <span className="px-2 py-1 text-xs bg-red-500 text-white rounded-full font-semibold">
                             {item.badge}
                           </span>
                         )}
@@ -256,23 +243,33 @@ export default function Sidebar() {
                       </div>
                     )}
                   </button>
-                  {!isMinimized && expandedItems.includes(item.name) && item.subItems && (
-                    <div className="ml-4 mt-1 space-y-1">
-                      {item.subItems.map((subItem) => (
-                        <Link
-                          key={subItem.href}
-                          href={subItem.href}
-                          className={`block px-4 py-2 rounded-lg text-sm transition-colors ${
-                            isActive(subItem.href)
-                              ? 'bg-orange-50 text-orange-600 font-medium'
-                              : 'text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          {subItem.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  {!isMinimized &&
+                    expandedItems.includes(item.name) &&
+                    item.subItems && (
+                      <div className="ml-4 mt-1 space-y-1 border-l-2 border-white/10 pl-3">
+                        {item.subItems.map((subItem) => (
+                          <Link
+                            key={subItem.href}
+                            href={subItem.href}
+                            className={`flex items-center justify-between px-4 py-2 rounded-lg text-sm transition-colors ${
+                              isActive(subItem.href)
+                                ? "bg-[#fbc40c] text-white font-medium"
+                                : "text-white/70 hover:bg-white/10"
+                            }`}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <ChevronRight size={14} />
+                              <span>{subItem.name}</span>
+                            </div>
+                            {subItem.badge && (
+                              <span className="px-2 py-0.5 text-xs bg-red-500 text-white rounded-full font-semibold">
+                                {subItem.badge}
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                 </>
               )}
             </div>
@@ -280,30 +277,44 @@ export default function Sidebar() {
         </div>
 
         {/* Settings & Logout */}
-        <div className="mt-8 pt-8 border-t border-gray-200 space-y-1">
+        <div className="mt-8 pt-8 border-t border-white/10 space-y-1">
           <Link
             href="/settings"
-            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100"
-            title={isMinimized ? 'Settings' : ''}
+            className="flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:bg-white/10"
+            title={isMinimized ? "Settings" : ""}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+            <Settings size={20} />
             {!isMinimized && <span className="font-medium">Settings</span>}
           </Link>
           <button
-            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50"
-            title={isMinimized ? 'Log out' : ''}
-            onClick={() => router.push('/signin')}
+            className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-400 hover:bg-red-500/10"
+            title={isMinimized ? "Log out" : ""}
+            onClick={() => router.push("/login")}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
+            <LogOut size={20} />
             {!isMinimized && <span className="font-medium">Log out</span>}
           </button>
         </div>
       </nav>
+
+      {/* User Info at Bottom */}
+      {/* {!isMinimized && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-[#0A2745]">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-[#fbc40c] rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm">AD</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate text-white">
+                Admin User
+              </p>
+              <p className="text-xs text-white/60 truncate">
+                admin@ezwealth.com
+              </p>
+            </div>
+          </div>
+        </div>
+      )} */}
     </aside>
-  )
+  );
 }

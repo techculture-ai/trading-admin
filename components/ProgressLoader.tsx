@@ -41,11 +41,11 @@ export default function ProgressLoader() {
   return (
     <div className="fixed top-0 left-0 right-0 z-50">
       <div className="h-1 bg-gray-200">
-        <div 
-          className="h-1 bg-gradient-to-r from-orange-500 to-orange-600 transition-all duration-300 ease-out"
+        <div
+          className="h-1 bg-gradient-to-r from-[#fbc40c] to-[#D68108] transition-all duration-300 ease-out"
           style={{ width: `${progress}%` }}
         ></div>
       </div>
     </div>
-  )
+  );
 }
