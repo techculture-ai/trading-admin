@@ -10,15 +10,18 @@ import {
   FaTimes,
   FaDownload,
   FaSpinner,
+  FaEdit,
 } from "react-icons/fa";
 import PageHeader from "@/components/PageHeader";
 import EnhancedDataTable from "@/components/EnhancedDataTable";
 import QuickStats from "@/components/QuickStats";
 import ConfirmModal from "@/components/ConfirmModal";
 import { FilterCondition } from "@/components/AdvancedFilter";
+import ViewClientModal from "@/components/ViewClientModal";
+import EditClientModal from "@/components/EditClientModal";
 
 interface ClientData {
-  id: string;
+  id?: string;
   _id?: string;
   [key: string]: any;
   isRead?: boolean;
@@ -63,6 +66,8 @@ const ClientsPage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [uploadMode, setUploadMode] = useState<"create" | "update">("create");
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   // Toast notification state
   const [toast, setToast] = useState<{
@@ -330,6 +335,10 @@ const ClientsPage = () => {
     fetchClients(conditions, search, 1, itemsPerPage);
   };
 
+  // Check if filters are active
+  const hasActiveFilters =
+    filterConditions.length > 0 || searchTerm.trim() !== "";
+
   // Handle page change
   const handlePageChange = (newPage: number) => {
     fetchClients(filterConditions, searchTerm, newPage, itemsPerPage);
@@ -370,7 +379,8 @@ const ClientsPage = () => {
   };
 
   const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
+    mode: "create" | "update" = "create"
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -389,7 +399,10 @@ const ClientsPage = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(`${API_URL}/upload`, {
+      const endpoint =
+        mode === "update" ? `${API_URL}/update-csv` : `${API_URL}/upload`;
+
+      const response = await fetch(endpoint, {
         method: "POST",
         body: formData,
       });
@@ -416,14 +429,36 @@ const ClientsPage = () => {
       } else {
         setUploadStatus("success");
 
-        let message = `Successfully uploaded ${result.newRecords} new record(s)`;
-        if (result.duplicatesSkipped > 0) {
-          message += `. ${result.duplicatesSkipped} duplicate(s) skipped`;
+        let message = "";
+        if (mode === "update") {
+          message = `Updated ${result.updatedRecords || 0} record(s), Added ${
+            result.insertedRecords || 0
+          } new record(s)`;
+        } else {
+          message = `Successfully uploaded ${result.newRecords} new record(s)`;
+          if (result.duplicatesSkipped > 0) {
+            message += `. ${result.duplicatesSkipped} duplicate(s) skipped`;
+          }
         }
 
-        showToast(message, result.duplicatesSkipped > 0 ? "info" : "success");
+        showToast(message, "success");
 
-        if (result.duplicateFile && result.duplicateFile.downloadUrl) {
+        // Show column info for update mode
+        if (mode === "update" && result.summary) {
+          setTimeout(() => {
+            showToast(
+              `Updated ${result.summary.columnsInCSV} column(s) only. Other columns unchanged.`,
+              "info"
+            );
+          }, 2000);
+        }
+
+        // Handle duplicate file download (only for create mode)
+        if (
+          mode === "create" &&
+          result.duplicateFile &&
+          result.duplicateFile.downloadUrl
+        ) {
           setTimeout(() => {
             if (
               confirm(
@@ -449,6 +484,7 @@ const ClientsPage = () => {
       }
 
       setTimeout(() => setUploadStatus("idle"), 3000);
+      setShowUploadModal(false);
     } catch (error: any) {
       console.error("Upload error:", error);
       setUploadStatus("error");
@@ -461,6 +497,20 @@ const ClientsPage = () => {
       setTimeout(() => setUploadStatus("idle"), 3000);
     }
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showUploadModal) {
+        const target = event.target as HTMLElement;
+        if (!target.closest(".relative")) {
+          setShowUploadModal(false);
+        }
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showUploadModal]);
 
   const handleExport = async () => {
     try {
@@ -506,49 +556,51 @@ const ClientsPage = () => {
     }
   };
 
-  const handleSaveEdit = async () => {
-    if (editData) {
-      try {
-        setIsUpdating(true);
+  const handleSaveEdit = async (updatedData: ClientData) => {
+    try {
+      setIsUpdating(true);
 
-        const {
-          id,
-          _id,
-          isRead,
-          uploadedAt,
-          lastModified,
-          uploadedBy,
-          ...data
-        } = editData;
-        const mongoId = _id || id;
+      const { id, _id, isRead, uploadedAt, lastModified, uploadedBy, ...data } =
+        updatedData;
+      const mongoId = _id || id;
 
-        const response = await fetch(`${API_URL}/${mongoId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
+      const response = await fetch(`${API_URL}/${mongoId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          editedBy: "Admin User", // TODO: Replace with actual logged-in user name
+          editedByEmail: "admin@example.com", // TODO: Replace with actual user email
+          ipAddress: "", // Optional: Add if you have user IP tracking
+          userAgent: navigator.userAgent,
+        },
+        body: JSON.stringify(data),
+      });
 
-        if (response.ok) {
-          setClients(
-            clients.map((client) =>
-              client.id === mongoId || client._id === mongoId
-                ? editData
-                : client
-            )
-          );
-          setShowEditModal(false);
-          setEditData(null);
-          showToast("Client updated successfully", "success");
-        } else {
-          const error = await response.json();
-          showToast(`Update failed: ${error.message}`, "error");
-        }
-      } catch (error) {
-        console.error("Update error:", error);
-        showToast("Failed to update client", "error");
-      } finally {
-        setIsUpdating(false);
+      if (response.ok) {
+        const result = await response.json();
+        setClients(
+          clients.map((client) =>
+            client.id === mongoId || client._id === mongoId
+              ? updatedData
+              : client
+          )
+        );
+        setShowEditModal(false);
+        setEditData(null);
+        // Show changes count in toast if available
+        const changesMsg = result.changesLogged
+          ? ` (${result.changesLogged} changes logged)`
+          : "";
+        showToast(`Client updated successfully${changesMsg}`, "success");
+      } else {
+        const error = await response.json();
+        showToast(`Update failed: ${error.message}`, "error");
       }
+    } catch (error) {
+      console.error("Update error:", error);
+      showToast("Failed to update client", "error");
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -680,26 +732,102 @@ const ClientsPage = () => {
             type="file"
             ref={fileInputRef}
             accept=".csv"
-            onChange={handleFileUpload}
+            onChange={(e) => handleFileUpload(e, uploadMode)}
             className="hidden"
           />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-6 py-3 bg-[#fbc40c] hover:bg-[#D68108] text-white rounded-lg font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-            disabled={uploadStatus === "uploading"}
-          >
-            {uploadStatus === "uploading" ? (
-              <>
-                <FaSpinner className="w-5 h-5 animate-spin" />
-                Uploading...
-              </>
-            ) : (
-              <>
-                <FaUpload className="w-5 h-5" />
-                Upload CSV
-              </>
+
+          {/* Upload Dropdown Button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUploadModal(!showUploadModal)}
+              className="px-6 py-3 bg-[#fbc40c] hover:bg-[#D68108] text-white rounded-lg font-semibold flex items-center gap-2 shadow-sm"
+              disabled={uploadStatus === "uploading"}
+            >
+              {uploadStatus === "uploading" ? (
+                <>
+                  <FaSpinner className="w-5 h-5 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <FaUpload className="w-5 h-5" />
+                  Upload CSV
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </>
+              )}
+            </button>
+
+            {/* Dropdown Menu */}
+            {showUploadModal && (
+              <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-xl border-2 border-gray-200 z-50">
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      setUploadMode("update");
+                      setShowUploadModal(false);
+                      fileInputRef.current?.click();
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-green-50 rounded-lg transition-colors flex items-start gap-3 mt-2"
+                  >
+                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <FaEdit className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900">
+                        Update Existing Records
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        Update by Trading Code. Only specified columns will be
+                        updated.
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUploadMode("create");
+                      setShowUploadModal(false);
+                      fileInputRef.current?.click();
+                    }}
+                    className="w-full text-left px-4 py-3 hover:bg-blue-50 rounded-lg transition-colors flex items-start gap-3"
+                  >
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <FaUpload className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-900">
+                        Create New Records
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1">
+                        Upload new clients. Duplicates will be skipped.
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                <div className="border-t border-gray-200 p-3 bg-gray-50 rounded-b-lg">
+                  <p className="text-xs text-gray-600 flex items-start gap-2">
+                    <span className="text-blue-600">💡</span>
+                    <span>
+                      <strong>Tip:</strong> For updates, include only Trading
+                      Code + columns you want to change.
+                    </span>
+                  </p>
+                </div>
+              </div>
             )}
-          </button>
+          </div>
         </div>
       </div>
 
@@ -707,7 +835,7 @@ const ClientsPage = () => {
       {clients.length > 0 && <QuickStats stats={quickStats} />}
 
       {/* Data Table */}
-      {isLoading && clients.length === 0 ? (
+      {isLoading && clients.length === 0 && !hasActiveFilters ? (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
           <FaSpinner className="w-16 h-16 text-[#fbc40c] animate-spin mx-auto mb-4" />
           <h3 className="text-xl font-bold text-gray-900 mb-2">
@@ -715,7 +843,7 @@ const ClientsPage = () => {
           </h3>
           <p className="text-gray-600">Please wait while we fetch your data</p>
         </div>
-      ) : totalRecords > 0 || clients.length > 0 ? ( // FIXED: Show table if there's any data OR if we've loaded before
+      ) : totalRecords > 0 || clients.length > 0 || hasActiveFilters ? (
         <EnhancedDataTable
           columns={displayColumns}
           data={clients}
@@ -755,134 +883,26 @@ const ClientsPage = () => {
       )}
 
       {/* View Modal */}
-      {showViewModal && editData && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-              <h3 className="text-2xl font-bold text-gray-900">
-                Client Details
-              </h3>
-              <button
-                onClick={() => {
-                  setShowViewModal(false);
-                  setEditData(null);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <FaTimes className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(editData)
-                  .filter(([key]) => key !== "id" && key !== "_id")
-                  .map(([key, value]) => (
-                    <div key={key} className="border-b border-gray-100 pb-3">
-                      <label className="text-sm font-semibold text-gray-600">
-                        {key
-                          .split("_")
-                          .map(
-                            (word: string) =>
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                          )
-                          .join(" ")}
-                      </label>
-                      <p className="text-gray-900 mt-1">
-                        {(value as string) || "-"}
-                      </p>
-                    </div>
-                  ))}
-              </div>
-            </div>
-            <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowViewModal(false);
-                  setEditData(null);
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-medium"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ViewClientModal
+        isOpen={showViewModal}
+        onClose={() => {
+          setShowViewModal(false);
+          setEditData(null);
+        }}
+        clientData={editData}
+      />
 
       {/* Edit Modal */}
-      {showEditModal && editData && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
-              <h3 className="text-2xl font-bold text-gray-900">Edit Client</h3>
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditData(null);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-                disabled={isUpdating}
-              >
-                <FaTimes className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(editData)
-                  .filter(([key]) => key !== "id" && key !== "_id")
-                  .map(([key, value]) => (
-                    <div key={key}>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        {key
-                          .split("_")
-                          .map(
-                            (word: string) =>
-                              word.charAt(0).toUpperCase() + word.slice(1)
-                          )
-                          .join(" ")}
-                      </label>
-                      <input
-                        type="text"
-                        value={value as string}
-                        onChange={(e) =>
-                          setEditData({ ...editData, [key]: e.target.value })
-                        }
-                        disabled={isUpdating}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#fbc40c] focus:ring-2 focus:ring-[#fbc40c]/20 disabled:bg-gray-100"
-                      />
-                    </div>
-                  ))}
-              </div>
-            </div>
-            <div className="flex gap-3 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditData(null);
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 font-medium disabled:opacity-50"
-                disabled={isUpdating}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                className="flex-1 px-4 py-2 bg-[#fbc40c] hover:bg-[#D68108] text-white rounded-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
-                disabled={isUpdating}
-              >
-                {isUpdating ? (
-                  <>
-                    <FaSpinner className="w-4 h-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditClientModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditData(null);
+        }}
+        clientData={editData}
+        onSave={handleSaveEdit}
+        isUpdating={isUpdating}
+      />
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
